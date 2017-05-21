@@ -1,0 +1,5 @@
+classifier.p filter=lfs diff=lfs merge=lfs -text
+non-vehicles.zip filter=lfs diff=lfs merge=lfs -text
+vehicles.zip filter=lfs diff=lfs merge=lfs -text
+project_video.mp4 filter=lfs diff=lfs merge=lfs -text
+project_video_output.mp4 filter=lfs diff=lfs merge=lfs -text
