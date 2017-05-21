@@ -1,4 +1,5 @@
 import copy
+import glob
 import numpy as np
 
 from moviepy.video.io.VideoFileClip import VideoFileClip
@@ -90,9 +91,11 @@ class Pipeline:
 
         return windows
 
+    def process(self, image, heatmap):
+        rectangles = self.__get_rectangles(image)
+        heatmap.add_rectangles(rectangles=rectangles)
 
-
-    def process(self, image):
+    def __get_rectangles(self, image):
         """
         Annotates an image with bounding boxes around cars
         
@@ -108,37 +111,40 @@ class Pipeline:
                 region=self.region,
                 hog_color_space_convert=self.car_classifier.hog_color_space_convert,
                 hog_channels=self.car_classifier.hog_channels,
-                hog_pix_per_cell=(window_shape[0]//self.car_classifier.hog_pix_per_cell[0], window_shape[1]//self.car_classifier.hog_pix_per_cell[1]),
+                hog_pix_per_cell=(window_shape[0] // self.car_classifier.hog_pix_per_cell[0],
+                                  window_shape[1] // self.car_classifier.hog_pix_per_cell[1]),
                 hog_cell_per_block=self.car_classifier.hog_cell_per_block,
                 hog_orient=self.car_classifier.hog_orient
             )
             feature_extractors[window_shape].extract()
+
+        rectangles = []
         for window in windows:
             try:
                 features = feature_extractors[window['shape']].get(window, self.car_classifier.hog_pix_per_cell)
 
                 if self.car_classifier.classifier.predict(features)[0] == 1:
-                    cv2.rectangle(
-                        img=image,
-                        pt1=(window['top_left']['x'], window['top_left']['y']),
-                        pt2=(window['bottom_right']['x'], window['bottom_right']['y']),
-                        color=(255,0,0),
-                        thickness=1
-                    )
+                    rectangles.append(window)
             except ValueError:
                 print(np.shape(features))
                 pass
 
-            # else:
-            #     cv2.rectangle(
-            #         img=image,
-            #         pt1=(window['top_left']['x'], window['top_left']['y']),
-            #         pt2=(window['bottom_right']['x'], window['bottom_right']['y']),
-            #         color=(0,0,255),
-            #         thickness=1
-            #     )
+        return rectangles
 
-        return image
+class Heatmap:
+
+    def __init__(self, image) -> None:
+        self.__heatmap = np.zeros_like(image)
+
+    def add_rectangles(self, rectangles):
+        for rectangle in rectangles:
+            self.__heatmap[
+                rectangle['top_left']['y']:rectangle['bottom_right']['y'],
+                rectangle['top_left']['x']:rectangle['bottom_right']['x']
+            ] += 1
+
+    def annotate_heatmap(self, image):
+        return cv2.addWeighted(image, 1.0, self.__heatmap, 25.0, 1.0)
 
 def get_pipeline():
     with open('classifier.p', 'rb') as file:
@@ -169,8 +175,8 @@ def get_pipeline():
         scale_rate_y=0.2
     )
 
-def process_video():
 
+def process_video():
     pipeline = get_pipeline()
 
     clip = VideoFileClip(filename="./project_video.mp4")
@@ -179,7 +185,9 @@ def process_video():
 
     def process(image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = pipeline.process(image)
+        heatmap = Heatmap(image)
+        pipeline.process(image, heatmap)
+        image = heatmap.annotate_heatmap(image)
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         return image
 
@@ -187,12 +195,19 @@ def process_video():
     clip.write_videofile(filename="./project_video_output.mp4", audio=False)
 
 
-def main():
+def process_image():
+    for file in glob.glob('test_images/*'):
+        image = cv2.imread(file)
+        heatmap = Heatmap(image)
+        get_pipeline().process(image, heatmap)
+        image = heatmap.annotate_heatmap(image)
+        cv2.imwrite('output_images/'+file, image)
 
-    # image = cv2.imread('test_images/test6.jpg')
-    # get_pipeline().process(image)
-    # cv2.imwrite('test.png', image)
+
+def main():
+    # process_image()
     process_video()
+
 
 if __name__ == "__main__":
     main()
