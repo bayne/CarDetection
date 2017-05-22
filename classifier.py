@@ -32,16 +32,26 @@ class CarClassifier:
 
     def extract_features(self, image):
         # Create a list to append feature vectors to
+        region = {
+            'top_left': {
+                'x': 0,
+                'y': 0,
+            },
+            'bottom_right': {
+                'x': image.shape[1],
+                'y': image.shape[0],
+            }
+        }
         feature_extractor = FeatureExtractor(
-            image=image,
             hog_color_space_convert=self.hog_color_space_convert,
+            region=region,
             hog_channels=self.hog_channels,
             hog_pix_per_cell=self.hog_pix_per_cell,
             hog_cell_per_block=self.hog_cell_per_block,
             hog_orient=self.hog_orient
         )
 
-        return feature_extractor.extract()
+        return feature_extractor.extract(image)
 
     def train(self, car_filenames, not_car_filenames):
 
@@ -57,6 +67,8 @@ class CarClassifier:
             image = cv2.imread(filename=filename)
             image = cv2.resize(image, (64, 64))
             notcar_features.append(self.extract_features(image))
+        print(len(notcar_features))
+        print(len(car_features))
 
         X = np.vstack((car_features, notcar_features)).astype(np.float64)
         # Fit a per-column scaler
