@@ -39,12 +39,15 @@ I wrapped the classifier in my own class called [`CarClassifier`](https://github
 Since the goal of the project is to find cars in a given frame, we need some type of mechanism to get subsamples of the full frame. The classifier is fed these subsamples and tells us which is a car and which is not a car. The approach I went with for generating these subsamples was a sliding window search.
 
 **Frame**
+
 ![test6](https://cloud.githubusercontent.com/assets/712014/26292006/7af901d8-3e67-11e7-9d49-3bf0e447cc8c.jpg)
 
 **Car**
+
 ![601199](https://cloud.githubusercontent.com/assets/712014/26291971/3ef6bdec-3e67-11e7-8b78-70a8b809e946.jpg)
 
 **Not a car**
+
 ![7269436](https://cloud.githubusercontent.com/assets/712014/26291979/4f35317a-3e67-11e7-8c68-bbb272c4815c.jpg)
 
 ### Sliding window search
